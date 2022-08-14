@@ -715,7 +715,7 @@ def reformat_code(
     except Exception as exc:
         if report.verbose:
             traceback.print_exc()
-        report.failed(path, str(exc))
+        report.failed(path, 0, 0, str(exc))
 
 
 # diff-shades depends on being to monkeypatch this function to operate. I know it's
@@ -757,6 +757,7 @@ def reformat_one(
                 res_src_s = str(res_src)
                 if res_src_s in cache and cache[res_src_s] == get_cache_info(res_src):
                     changed = Changed.CACHED
+            # TODO capture the exception from below
             if changed is not Changed.CACHED and format_file_in_place(
                 src, fast=fast, write_back=write_back, mode=mode
             ):
@@ -767,9 +768,14 @@ def reformat_one(
                 write_cache(cache, [src], mode)
         report.done(src, changed)
     except Exception as exc:
+        pass
+    except InvalidInput as exc:
+        import pdb
+        pdb.set_trace()
         if report.verbose:
             traceback.print_exc()
-        report.failed(src, str(exc))
+        # TODO capture the exception from above and add here
+        report.failed(src, 0, 0, str(exc))
 
 
 # diff-shades depends on being to monkeypatch this function to operate. I know it's
@@ -879,7 +885,7 @@ async def schedule_formatting(
             if task.cancelled():
                 cancelled.append(task)
             elif task.exception():
-                report.failed(src, str(task.exception()))
+                report.failed(src, 0, 0, str(task.exception()))
             else:
                 changed = Changed.YES if task.result() else Changed.NO
                 # If the file was written back or was successfully checked as
